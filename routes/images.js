@@ -10,8 +10,12 @@ router.get('/', function(req, res) {
   res.send('respond with a resource');
 });
 
+/**
+  Função que baixa as imagens do exemplo dado e armazena no BD
+*/
 router.get('/savingImagesFromInternet', function(req, res) {
 
+  //Faz a requisição para obter as imagens através do json
   request('http://54.152.221.29/images.json', function (error, response, body) {
 
     var data = JSON.parse(body);
@@ -22,6 +26,8 @@ router.get('/savingImagesFromInternet', function(req, res) {
       if (err) throw err;
 
       console.error('removed old docs ');
+
+      //Salva as fotos no BD
       baixandoImagens(images,function(){
 
       });
@@ -32,6 +38,7 @@ router.get('/savingImagesFromInternet', function(req, res) {
   res.send('Baixando Imagens');
 });
 
+//Rota que devolve todas os links das imagens nos tamanhos small, medium e big
 router.get('/showAllImages/', function(req, res) {
 
     Image.find({},function (err, cursor){
@@ -47,7 +54,7 @@ router.get('/showAllImages/', function(req, res) {
 
           data.push(url);
           i++;
-          
+
           if(i == cursor.length){
             res.json({images : data});
           }
@@ -61,18 +68,25 @@ router.get('/showAllImages/', function(req, res) {
 
 });
 
+
+//Rota que mostra a imagem no banco de acordo com seu tamanho (small, medium, big)
 router.get('/showImage/:size/:id', function(req, res) {
 
   var id_image = req.params.id;
   var size = req.params.size;
 
+  //procura pelo id
   Image.findOne({id: id_image}, function(err, document) {
 
+    //se existir
     if(document){
 
       Jimp.read(document.img.data, function (err, image) {
-          //console.error('resize pequeno '+id);
+
+          //se for pequeno
           if(size == "small"){
+
+            //resize small
             image.resize(320,280);
             image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
 
@@ -80,7 +94,10 @@ router.get('/showImage/:size/:id', function(req, res) {
               res.send(buffer);
 
             });
+            //se for medium
           }else if(size == "medium"){
+
+            //resize medium
             image.resize(384,288);
             image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
 
@@ -88,7 +105,11 @@ router.get('/showImage/:size/:id', function(req, res) {
               res.send(buffer);
 
             });
+
+            //se for big
           }else if(size == "big"){
+
+            //resize small
             image.resize(640,480);
             image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
 
@@ -113,6 +134,10 @@ router.get('/showImage/:size/:id', function(req, res) {
 
 module.exports = router;
 
+
+/**
+  Função que baixa as fotos e salva no bd
+*/
 function baixandoImagens(images, callback){
 
   let i = 0 ;
