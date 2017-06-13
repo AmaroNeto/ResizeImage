@@ -21,7 +21,7 @@ router.get('/savingImagesFromInternet', function(req, res) {
     Image.remove(function (err) {
       if (err) throw err;
 
-      console.error('removed old docs');
+      console.error('removed old docs ');
       baixandoImagens(images,function(){
 
       });
@@ -32,15 +32,80 @@ router.get('/savingImagesFromInternet', function(req, res) {
   res.send('Baixando Imagens');
 });
 
+router.get('/showAllImages/', function(req, res) {
 
-router.get('/showImage/:id', function(req, res) {
+    Image.find({},function (err, cursor){
+
+      var data = [];
+      var i = 0;
+      cursor.forEach(function (item){
+
+          var url = {};
+          url.url_small = "http://localhost:3000/images/showImage/small/"+item.id;
+          url.url_medium = "http://localhost:3000/images/showImage/medium/"+item.id;
+          url.url_big = "http://localhost:3000/images/showImage/big/"+item.id;
+
+          data.push(url);
+          i++;
+          
+          if(i == cursor.length){
+            res.json({images : data});
+          }
+
+      });
+
+    });
+
+
+
+
+});
+
+router.get('/showImage/:size/:id', function(req, res) {
 
   var id_image = req.params.id;
+  var size = req.params.size;
 
   Image.findOne({id: id_image}, function(err, document) {
-    console.log(document.url);
-    res.contentType(document.img.contentType);
-    res.send(document.img.data);
+
+    if(document){
+
+      Jimp.read(document.img.data, function (err, image) {
+          //console.error('resize pequeno '+id);
+          if(size == "small"){
+            image.resize(320,280);
+            image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
+
+              res.contentType(document.img.contentType);
+              res.send(buffer);
+
+            });
+          }else if(size == "medium"){
+            image.resize(384,288);
+            image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
+
+              res.contentType(document.img.contentType);
+              res.send(buffer);
+
+            });
+          }else if(size == "big"){
+            image.resize(640,480);
+            image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
+
+              res.contentType(document.img.contentType);
+              res.send(buffer);
+
+            });
+          }
+
+
+      });
+
+
+    }else{
+      res.json({msg:"Foto não encontrada"});
+    }
+
   });
 
 });
@@ -67,90 +132,15 @@ function baixandoImagens(images, callback){
       a.url = item.url;
       a.size = 'original'
 
+      i++;
       //salvando no banco
-      /*a.save(function (err, a) {
+      a.save(function (err, a) {
       if (err) throw err;
         console.error('saved img to mongo');
-      });*/
-
-      i++;
-      salvarPequeno(a,i,function(id){
-
-        i++;
-        salvarMedio(a,i,function(id_medio){
-
-          i++;
-          salvarGrande(a,i,function(id_grande){
-              i++;
-          });
-
-        });
-
       });
 
     });
 
   });
 
-}
-
-function salvarPequeno(img,id, callback){
-  Jimp.read(img.img.data, function (err, image) {
-      console.error('resize pequeno '+id);
-      image.resize(320,280);
-
-      image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
-
-        img.id = id;
-        img.img.data = buffer;
-        img.save(function (err, a) {
-        if (err) throw err;
-          console.error('saved img to mongo pequeno');
-          //callback(++id);
-
-        });
-
-      });
-  // do stuff with the image (if no exception)
-  });
-}
-
-function salvarMedio(img,id, callback){
-  Jimp.read(img.img.data, function (err, image) {
-      console.error('resize foto medio '+id);
-      image.resize(384,288);
-
-      image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
-
-        img.id = id;
-        img.img.data = buffer;
-        img.save(function (err, a) {
-        if (err) throw err;
-          console.error('saved img to mongo medio');
-          callback(++id);
-        });
-
-      });
-  // do stuff with the image (if no exception)
-  });
-}
-
-function salvarGrande(img,id, callback){
-  Jimp.read(img.img.data, function (err, image) {
-      console.error('resize foto grande '+id);
-      image.resize(640,480);
-
-      image.getBuffer(Jimp.MIME_JPEG, function(err, buffer){
-
-        img.id = id;
-        img.img.data = buffer;
-        img.save(function (err, a) {
-        if (err) throw err;
-          console.error('saved img to mongo grande');
-          callback(++id);
-        });
-
-      });
-  // do stuff with the image (if no exception)
-  });
 }
